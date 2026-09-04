@@ -109,43 +109,63 @@ function EmptyState({ message }) {
 }
 
 // --------------------------------------------------------------------------- //
-// Pipeline renderer — vertical TB chain of semantic nodes
+// Pipeline renderer — MC-style node cards in a vertical chain (custom, since
+// the SDK can't import React Flow: only @hermes/plugin-sdk, react resolve).
+// Each node: tinted border + colored header (icon + kind label) + title +
+// detail, connected by an arrow. Clickable when onStepClick is provided.
 // --------------------------------------------------------------------------- //
-function Pipeline({ sequence }) {
+function FlowArrow() {
+  return h(
+    'svg',
+    { width: 14, height: 20, style: { margin: '0 auto', display: 'block', flexShrink: 0 } },
+    jsx('line', { x1: 7, y1: 0, x2: 7, y2: 14, stroke: 'rgba(255,255,255,0.22)', strokeWidth: 1 }),
+    jsx('path', { d: 'M2.5 13.5 L7 18.5 L11.5 13.5', stroke: 'rgba(255,255,255,0.22)', fill: 'none', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' })
+  )
+}
+
+function Pipeline({ sequence, onStepClick }) {
   if (!sequence || !sequence.length) return h(EmptyState, { message: 'No steps' })
   const rows = []
   sequence.forEach((step, i) => {
     const st = kindStyle(step.kind || step.type)
+    const isSkillStep = step.kind === 'skill' || step.kind === 'agent'
+    const clickable = !!(onStepClick && isSkillStep && step.label && step.label !== st.label)
     rows.push(
       h(
         'div',
-        { key: i, style: { display: 'flex', gap: '8px', alignItems: 'flex-start' } },
+        { key: i, style: { display: 'flex', flexDirection: 'column' } },
+        i > 0 ? h(FlowArrow, {}) : null,
         h(
           'div',
-          { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: '14px' } },
-          h('span', { style: { color: st.color, fontSize: '0.75rem', lineHeight: '1.25' } }, st.icon),
-          i < sequence.length - 1
-            ? h('span', {
-                style: {
-                  width: '1px',
-                  flex: '1',
-                  minHeight: '10px',
-                  background: 'var(--ui-stroke-secondary, rgba(255,255,255,0.12))',
-                },
-              })
-            : null
-        ),
-        h(
-          'div',
-          { style: { flex: '1', minWidth: 0, paddingBottom: i < sequence.length - 1 ? '10px' : 0 } },
+          {
+            onClick: clickable ? () => onStepClick({ type: 'skill', id: step.label }) : undefined,
+            title: clickable ? 'Open skill: ' + step.label : undefined,
+            style: {
+              width: '100%',
+              maxWidth: '440px',
+              margin: '0 auto',
+              border: '1px solid ' + st.color + '4d',
+              borderLeft: '3px solid ' + st.color,
+              borderRadius: '10px',
+              background: 'linear-gradient(180deg, ' + st.color + '17, rgba(255,255,255,0.02))',
+              padding: '10px 12px',
+              cursor: clickable ? 'pointer' : 'default',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px',
+            },
+          },
           h(
             'div',
             { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
-            h('span', { style: { color: st.color, fontSize: '0.75rem' } }, st.label),
-            h('span', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem' } }, step.kindLabel || '')
+            h('span', { style: { color: st.color, fontSize: '0.8125rem', lineHeight: '1' } }, st.icon),
+            h('span', { style: { color: st.color, fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' } }, st.label),
+            step.kindLabel && step.kindLabel !== st.label
+              ? h('span', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.625rem', marginLeft: 'auto' } }, step.kindLabel)
+              : null
           ),
           step.label && step.label !== st.label
-            ? h('div', { style: { color: 'var(--ui-text-secondary, #e5e7eb)', fontSize: '0.8125rem', overflowWrap: 'break-word' } }, step.label)
+            ? h('div', { style: { color: 'var(--ui-text-secondary, #e5e7eb)', fontSize: '0.8125rem', fontWeight: 600, overflowWrap: 'break-word' } }, step.label)
             : null,
           step.detail
             ? h('div', { style: { color: 'var(--ui-text-tertiary, #9ca3af)', fontSize: '0.6875rem', overflowWrap: 'break-word', maxHeight: '3.2em', overflow: 'hidden' } }, String(step.detail))
@@ -160,7 +180,7 @@ function Pipeline({ sequence }) {
 // --------------------------------------------------------------------------- //
 // Crons tab
 // --------------------------------------------------------------------------- //
-function CronsTab({ ctx }) {
+function CronsTab({ ctx, nav, onNavigate }) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
   const q = useQuery({
@@ -168,6 +188,11 @@ function CronsTab({ ctx }) {
     queryFn: () => ctx.rest('/crons'),
     refetchInterval: POLL_MS,
   })
+
+  // Incoming cross-tab navigation: select the targeted job once visible.
+  useEffect(() => {
+    if (nav && nav.to === 'crons' && nav.item) setSelected(nav.item)
+  }, [nav])
 
   const jobs = useMemo(() => {
     const list = q.data && q.data.jobs ? q.data.jobs : []
@@ -258,7 +283,7 @@ function CronsTab({ ctx }) {
             : null,
           h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Pipeline'),
           h('div', { style: { marginTop: '8px', padding: '12px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', borderRadius: '8px' } },
-            h(Pipeline, { sequence: job.sequence })
+            h(Pipeline, { sequence: job.sequence, onStepClick: (ref) => onNavigate(ref.type, ref.id) })
           ),
           h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Prompt'),
           h('pre', {
@@ -283,13 +308,18 @@ function CronsTab({ ctx }) {
 // --------------------------------------------------------------------------- //
 // Webhooks tab
 // --------------------------------------------------------------------------- //
-function WebhooksTab({ ctx }) {
+function WebhooksTab({ ctx, nav, onNavigate }) {
   const [selected, setSelected] = useState(null)
   const q = useQuery({
     queryKey: ['mc-workflows', 'webhooks'],
     queryFn: () => ctx.rest('/webhooks'),
     refetchInterval: POLL_MS,
   })
+
+  // Incoming cross-tab navigation: select the targeted route once visible.
+  useEffect(() => {
+    if (nav && nav.to === 'webhooks' && nav.item) setSelected(nav.item)
+  }, [nav])
 
   const routes = q.data && q.data.routes ? q.data.routes : []
   const active = selected && routes.find((r) => r.name === selected) ? selected : routes.length ? routes[0].name : null
@@ -335,7 +365,7 @@ function WebhooksTab({ ctx }) {
             : h('div', { style: { marginTop: '8px' } }, h(Badge, { children: 'all events' })),
           h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Pipeline'),
           h('div', { style: { marginTop: '8px', padding: '12px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', borderRadius: '8px' } },
-            h(Pipeline, { sequence: route.sequence })
+            h(Pipeline, { sequence: route.sequence, onStepClick: (ref) => onNavigate(ref.type, ref.id) })
           ),
           h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Prompt template'),
           h('pre', { style: { marginTop: '8px', padding: '12px', borderRadius: '8px', background: 'var(--ui-stroke-secondary, rgba(255,255,255,0.04))', color: 'var(--ui-text-secondary, #e5e7eb)', fontSize: '0.75rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '240px', overflowY: 'auto' } }, route.prompt_full || '(no prompt)')
@@ -415,10 +445,15 @@ function EditDialog({ skill, ctx, onClose, onSaved }) {
   )
 }
 
-function SkillsTab({ ctx }) {
+function SkillsTab({ ctx, nav, onNavigate }) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
   const [editing, setEditing] = useState(false)
+
+  // Incoming cross-tab navigation: select the targeted skill once visible.
+  useEffect(() => {
+    if (nav && nav.to === 'skills' && nav.item) setSelected(nav.item)
+  }, [nav])
 
   const listQ = useQuery({
     queryKey: ['mc-workflows', 'skills'],
@@ -508,13 +543,25 @@ function SkillsTab({ ctx }) {
           detail.related_skills && detail.related_skills.length
             ? h('div', { style: { marginTop: '8px' } },
                 h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Related skills'),
-                h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.related_skills.map((r) => h(Badge, { key: r, children: r })))
+                h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.related_skills.map((r) =>
+                  h('button', {
+                    key: r,
+                    onClick: () => { setSelected(String(r)); setQuery('') },
+                    style: { background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' },
+                  }, h(Badge, { key: r, children: r }))
+                ))
               )
             : null,
           detail.used_by_crons && detail.used_by_crons.length
             ? h('div', { style: { marginTop: '8px' } },
                 h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Used by crons'),
-                h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.used_by_crons.map((c) => h(Badge, { key: c, children: c })))
+                h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.used_by_crons.map((c) =>
+                  h('button', {
+                    key: c,
+                    onClick: () => onNavigate('crons', String(c)),
+                    style: { background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' },
+                  }, h(Badge, { key: c, children: c }))
+                ))
               )
             : null,
           h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'SKILL.md'),
@@ -531,11 +578,19 @@ function SkillsTab({ ctx }) {
 // --------------------------------------------------------------------------- //
 function WorkflowsPage({ ctx }) {
   const [tab, setTab] = useState('crons')
+  // Cross-tab navigation: a step/badge click can jump to another tab and
+  // select an item there. { to: 'skills'|'crons'|'webhooks', item: name }.
+  const [nav, setNav] = useState(null)
   const tabs = [
     { id: 'crons', label: 'Crons' },
     { id: 'webhooks', label: 'Webhooks' },
     { id: 'skills', label: 'Skills' },
   ]
+
+  const navigate = (to, item) => {
+    setNav({ to, item })
+    setTab(to)
+  }
 
   useEffect(() => {
     // Live push: native gateway cron.changed + our skills broadcast.
@@ -561,7 +616,7 @@ function WorkflowsPage({ ctx }) {
       tabs.map((t) =>
         h('button', {
           key: t.id,
-          onClick: () => setTab(t.id),
+          onClick: () => { setNav(null); setTab(t.id) },
           style: {
             padding: '5px 12px',
             borderRadius: '6px',
@@ -577,7 +632,7 @@ function WorkflowsPage({ ctx }) {
     h(
       'div',
       { style: { flex: '1', minHeight: 0 } },
-      tab === 'crons' ? h(CronsTab, { ctx }) : tab === 'webhooks' ? h(WebhooksTab, { ctx }) : h(SkillsTab, { ctx })
+      tab === 'crons' ? h(CronsTab, { ctx, nav, onNavigate: navigate }) : tab === 'webhooks' ? h(WebhooksTab, { ctx, nav, onNavigate: navigate }) : h(SkillsTab, { ctx, nav, onNavigate: navigate })
     )
   )
 }
