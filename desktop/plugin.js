@@ -22,7 +22,7 @@ import {
   SIDEBAR_NAV_AREA,
 } from '@hermes/plugin-sdk'
 import { jsx, Fragment } from 'react/jsx-runtime'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 
 // --------------------------------------------------------------------------- //
 // Semantic pipeline colors (fallbacks only — the desktop reskins these via
@@ -180,8 +180,7 @@ function Pipeline({ sequence, onStepClick }) {
 // --------------------------------------------------------------------------- //
 // Crons tab
 // --------------------------------------------------------------------------- //
-function CronsTab({ ctx, nav, onOpenSkill }) {
-  const [query, setQuery] = useState('')
+function CronsTab({ ctx, nav, onOpenSkill, navTabs }) {
   const [selected, setSelected] = useState(null)
   const q = useQuery({
     queryKey: ['mc-workflows', 'crons'],
@@ -194,18 +193,7 @@ function CronsTab({ ctx, nav, onOpenSkill }) {
     if (nav && nav.to === 'crons' && nav.item) setSelected(nav.item)
   }, [nav])
 
-  const jobs = useMemo(() => {
-    const list = q.data && q.data.jobs ? q.data.jobs : []
-    if (!query.trim()) return list
-    const ql = query.toLowerCase()
-    return list.filter(
-      (j) =>
-        (j.name || '').toLowerCase().includes(ql) ||
-        (j.project || '').toLowerCase().includes(ql) ||
-        (j.skills || []).some((s) => s.toLowerCase().includes(ql))
-    )
-  }, [q.data, query])
-
+  const jobs = q.data && q.data.jobs ? q.data.jobs : []
   const active = selected && jobs.find((j) => j.name === selected) ? selected : jobs.length ? jobs[0].name : null
 
   if (q.isLoading) return h('div', { style: { padding: '16px', color: 'var(--ui-text-tertiary)' } }, 'Loading crons…')
@@ -222,21 +210,7 @@ function CronsTab({ ctx, nav, onOpenSkill }) {
     h(
       'div',
       { style: { width: '280px', flexShrink: 0, borderRight: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', display: 'flex', flexDirection: 'column', minHeight: 0 } },
-      h('input', {
-        placeholder: 'Search crons…',
-        value: query,
-        onChange: (e) => setQuery(e.target.value),
-        style: {
-          margin: '8px',
-          padding: '6px 8px',
-          fontSize: '0.8125rem',
-          borderRadius: '6px',
-          border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.12))',
-          background: 'transparent',
-          color: 'var(--ui-text-secondary, #e5e7eb)',
-          outline: 'none',
-        },
-      }),
+      navTabs ? h(navTabs, {}) : null,
       h(
         'div',
         { style: { flex: '1', overflowY: 'auto', minHeight: 0 } },
@@ -308,7 +282,7 @@ function CronsTab({ ctx, nav, onOpenSkill }) {
 // --------------------------------------------------------------------------- //
 // Webhooks tab
 // --------------------------------------------------------------------------- //
-function WebhooksTab({ ctx, nav, onOpenSkill }) {
+function WebhooksTab({ ctx, nav, onOpenSkill, navTabs }) {
   const [selected, setSelected] = useState(null)
   const q = useQuery({
     queryKey: ['mc-workflows', 'webhooks'],
@@ -334,8 +308,12 @@ function WebhooksTab({ ctx, nav, onOpenSkill }) {
     { style: { display: 'flex', height: '100%', minHeight: 0 } },
     h(
       'div',
-      { style: { width: '280px', flexShrink: 0, borderRight: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', overflowY: 'auto', minHeight: 0 } },
-      routes.map((r) =>
+      { style: { width: '280px', flexShrink: 0, borderRight: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', display: 'flex', flexDirection: 'column', minHeight: 0 } },
+      navTabs ? h(navTabs, {}) : null,
+      h(
+        'div',
+        { style: { flex: '1', overflowY: 'auto', minHeight: 0 } },
+        routes.map((r) =>
         h(
           'button',
           {
@@ -351,6 +329,7 @@ function WebhooksTab({ ctx, nav, onOpenSkill }) {
           },
           h('span', { style: { fontSize: '0.8125rem' } }, r.name),
           r.description ? h('div', { style: { fontSize: '0.6875rem', color: 'var(--ui-text-tertiary, #9ca3af)' } }, r.description) : null
+        )
         )
       )
     ),
@@ -530,11 +509,11 @@ function SkillModal({ name, ctx, onNavigate, onClose }) {
         {
           role: 'user',
           content:
-            'Contexte : voici le skill "' + detail.name + '" (SKILL.md complet ci-dessous).\n\n' +
+            'Context: here is the skill "' + detail.name + '" (full SKILL.md below).\n\n' +
             (detail.raw || '(no content)') +
-            '\n\nUn changement va t\'être demandé pour ce skill. Fais-le directement (écris le fichier), ' +
-            'respecte le frontmatter existant (--- au byte 0, name présent, description ≤ 1024 chars, body non-vide), ' +
-            'et confirme en français ce que tu as modifié.',
+            '\n\nA change will be requested for this skill. Make it directly (write the file), ' +
+            'keep the existing frontmatter valid (--- at byte 0, name present, description ≤ 1024 chars, non-empty body), ' +
+            'and confirm in French what you changed.',
         },
       ]
       const created = await host.request('session.create', {
@@ -585,13 +564,13 @@ function SkillModal({ name, ctx, onNavigate, onClose }) {
         }) : h(EmptyState, { message: 'No skill data' })
       ),
       h('div', { style: { padding: '12px 16px', borderTop: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))' } },
-        h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' } }, 'Demander un changement (agent)'),
+        h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' } }, 'Ask an agent to change it'),
         h('div', { style: { display: 'flex', gap: '8px' } },
           h('input', {
             value: request,
             onChange: (e) => { setRequest(e.target.value); setRequestState(null) },
             onKeyDown: (e) => { if (e.key === 'Enter') sendRequest() },
-            placeholder: 'Ex. : reformule la description, ajoute un piège, restructure… puis Entrée',
+            placeholder: 'e.g. reword the description, add a pitfall, restructure… then press Enter',
             disabled: requestState === 'sending',
             style: {
               flex: '1', padding: '8px 10px', fontSize: '0.8125rem', borderRadius: '6px',
@@ -608,12 +587,12 @@ function SkillModal({ name, ctx, onNavigate, onClose }) {
               cursor: requestState === 'sending' ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 600,
               whiteSpace: 'nowrap',
             },
-          }, requestState === 'sending' ? 'Démarre…' : 'Go')
+          }, requestState === 'sending' ? 'Starting…' : 'Go')
         ),
         requestState && requestState.ok
-          ? h('div', { style: { marginTop: '6px', color: '#22c55e', fontSize: '0.75rem' } }, 'Session démarrée — suis-la dans la sidebar (nouvel onglet).')
+          ? h('div', { style: { marginTop: '6px', color: '#22c55e', fontSize: '0.75rem' } }, 'Session started — follow it in the sidebar (new tab).')
           : requestState && requestState.err
-            ? h('div', { style: { marginTop: '6px', color: '#ef4444', fontSize: '0.75rem' } }, 'Erreur : ' + requestState.err)
+            ? h('div', { style: { marginTop: '6px', color: '#ef4444', fontSize: '0.75rem' } }, 'Error: ' + requestState.err)
             : null
       ),
       editing && detail ? h(EditDialog, { skill: detail, ctx, onClose: () => setEditing(false), onSaved: () => setEditing(false) }) : null
@@ -658,19 +637,19 @@ function WorkflowsPage({ ctx }) {
     }
   }, [])
 
-  return h(
-    'div',
-    { style: { display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 } },
+  // Tab switch buttons rendered at the top of the LEFT sidebar (replaces the
+  // old top header tabs): Crons | Webhooks.
+  const NavTabs = () =>
     h(
       'div',
-      { style: { display: 'flex', alignItems: 'center', gap: '2px', padding: '8px 12px', borderBottom: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))' } },
-      h('div', { style: { fontWeight: 600, fontSize: '0.875rem', color: 'var(--ui-text-secondary, #e5e7eb)', marginRight: '16px' } }, 'Workflows'),
+      { style: { display: 'flex', gap: '2px', padding: '8px 8px 6px', borderBottom: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))' } },
       tabs.map((t) =>
         h('button', {
           key: t.id,
           onClick: () => { setNav(null); setTab(t.id) },
           style: {
-            padding: '5px 12px',
+            flex: '1',
+            padding: '5px 8px',
             borderRadius: '6px',
             border: 'none',
             background: tab === t.id ? 'var(--ui-accent, rgba(0,245,147,0.12))' : 'transparent',
@@ -680,11 +659,20 @@ function WorkflowsPage({ ctx }) {
           },
         }, t.label)
       )
+    )
+
+  return h(
+    'div',
+    { style: { display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 } },
+    h(
+      'div',
+      { style: { display: 'flex', alignItems: 'center', gap: '2px', padding: '8px 12px', borderBottom: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))' } },
+      h('div', { style: { fontWeight: 600, fontSize: '0.875rem', color: 'var(--ui-text-secondary, #e5e7eb)', marginRight: '16px' } }, 'Workflows')
     ),
     h(
       'div',
       { style: { flex: '1', minHeight: 0 } },
-      tab === 'crons' ? h(CronsTab, { ctx, nav, onOpenSkill: openSkill }) : h(WebhooksTab, { ctx, nav, onOpenSkill: openSkill })
+      tab === 'crons' ? h(CronsTab, { ctx, nav, onOpenSkill: openSkill, navTabs: NavTabs }) : h(WebhooksTab, { ctx, nav, onOpenSkill: openSkill, navTabs: NavTabs })
     ),
     modalSkill ? h(SkillModal, { name: modalSkill, ctx, onNavigate: navigate, onClose: () => setModalSkill(null) }) : null
   )
@@ -695,7 +683,7 @@ function WorkflowsPage({ ctx }) {
 // --------------------------------------------------------------------------- //
 export default {
   id: 'mc-workflows',
-  name: 'Workflows & Skills',
+  name: 'Workflows',
   register(ctx) {
     ctx.registerMany([
       {
