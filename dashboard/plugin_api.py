@@ -47,13 +47,30 @@ _log = logging.getLogger("mc-workflows")
 PLUGIN_NAME = "mc-workflows"
 PLUGIN_VERSION = "1.0.0"
 
-# Canonical sources. Skills scope is deliberately /opt/data/skills/** only —
-# the platform tree (/opt/hermes/skills) and shared-skills are read elsewhere,
-# never edited here.
-CRON_JOBS = Path("/opt/data/cron/jobs.json")
-WEBHOOKS = Path("/opt/data/webhook_subscriptions.json")
-SKILLS_ROOT = Path("/opt/data/skills")
+# Canonical sources — resolved from HERMES_HOME so the plugin works on any
+# machine, not just this VPS. The plugin_api.py runs inside the gateway/serve
+# process, which exports HERMES_HOME (see hermes_constants.get_hermes_home).
+# Skills scope is deliberately <HERMES_HOME>/skills/** only — the platform
+# tree and shared-skills are read elsewhere, never edited here.
+def _hermes_home() -> Path:
+    env = os.environ.get("HERMES_HOME")
+    if env:
+        return Path(env)
+    try:
+        from hermes_constants import get_hermes_home
 
+        return Path(get_hermes_home())
+    except Exception:
+        return Path.home() / ".hermes"
+
+
+_HERMES_HOME = _hermes_home()
+CRON_JOBS = _HERMES_HOME / "cron" / "jobs.json"
+WEBHOOKS = _HERMES_HOME / "webhook_subscriptions.json"
+SKILLS_ROOT = _HERMES_HOME / "skills"
+
+# Local gateway webhook base (the desktop talks to the same gateway the
+# websocket routes through; loopback port is the default gateway port).
 WEBHOOK_BASE = "http://127.0.0.1:8644/webhooks/"
 MAX_DESCRIPTION_LENGTH = 1024
 
@@ -332,7 +349,7 @@ def _split_frontmatter(text: str) -> tuple[dict, str]:
 
 
 def _resolve_skill_path(name: str) -> Path:
-    """Map a skill name to its SKILL.md under /opt/data/skills (user-owned only)."""
+    """Map a skill name to its SKILL.md under <HERMES_HOME>/skills (user-owned only)."""
     if not _SKILL_NAME_RE.match(name):
         raise HTTPException(status_code=400, detail=f"invalid skill name: {name!r}")
     matches = [p for p in SKILLS_ROOT.rglob("SKILL.md") if p.parent.name == name]
@@ -466,7 +483,7 @@ def _validate_skill_content(content: str) -> Optional[str]:
 async def put_skill(name: str, update: SkillUpdate):
     md = _resolve_skill_path(name)
     # Hard scope: user-owned skills only. The path is already resolved under
-    # SKILLS_ROOT by _resolve_skill_path (rglob only walks /opt/data/skills).
+    # SKILLS_ROOT by _resolve_skill_path (rglob only walks <HERMES_HOME>/skills).
     err = _validate_skill_content(update.content)
     if err:
         raise HTTPException(status_code=422, detail=err)

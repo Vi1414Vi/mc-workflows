@@ -18,12 +18,12 @@ mc-workflows/
 
 ## What it does
 
-- **Crons** — reads `/opt/data/cron/jobs.json`, renders each job as a
+- **Crons** — reads `$HERMES_HOME/cron/jobs.json`, renders each job as a
   top-to-bottom semantic pipeline (trigger → prompt/script/skill → deliver),
   grouped by inferred project, with status dots, issues, and the full prompt.
-- **Webhooks** — reads `/opt/data/webhook_subscriptions.json`, same pipeline
+- **Webhooks** — reads `$HERMES_HOME/webhook_subscriptions.json`, same pipeline
   rendering. HMAC `secret` is stripped in the backend and never serialized.
-- **Skills** — discovers `SKILL.md` under `/opt/data/skills/**`, shows
+- **Skills** — discovers `SKILL.md` under `$HERMES_HOME/skills/**`, shows
   description, credentials, related skills, used-by crons, and the full
   `SKILL.md`. **Edit** opens a raw-editor dialog → validated atomic write.
 
@@ -61,23 +61,28 @@ mc-workflows/
 
 ## Install
 
-### Backend (VPS — the machine running the dashboard/gateway)
+Two halves, two install steps. Both are just file copies — no build step, no
+dependencies. The backend half reads canonical files from **your** Hermes home
+(resolved via `HERMES_HOME`, default `~/.hermes/`), so it works on any machine.
+
+### 1. Backend (the machine running the Hermes gateway/serve process)
 
 ```bash
-# 1. copy the dashboard half into the user-plugin root (HERMES_HOME=/opt/data)
-mkdir -p /opt/data/plugins/mc-workflows
-cp -r dashboard /opt/data/plugins/mc-workflows/
+# 1. copy the dashboard half into the user-plugin root
+install -d "$HERMES_HOME/plugins/mc-workflows" 2>/dev/null || mkdir -p ~/.hermes/plugins/mc-workflows
+cp -r dashboard ~/.hermes/plugins/mc-workflows/
 
-# 2. add to config.yaml as a PROPER YAML LIST (no `plugins:` section exists yet):
+# 2. add to config.yaml as a PROPER YAML LIST:
 #   plugins:
 #     enabled:
 #       - mc-workflows
 
-# 3. restart the dashboard process, then verify the mount in the logs:
-#   "Mounted plugin API routes: /api/plugins/mc-workflows/"
+# 3. restart the Hermes serve/gateway process, then verify the mount:
+#   "Mounted plugin API routes: /api/plugins/mc-workflows/" in the logs
 ```
 
-### Frontend (the machine running Hermes Desktop — NOT the VPS)
+### 2. Frontend (the machine running Hermes Desktop — a different machine only
+if your Desktop connects to a remote gateway; otherwise the same one)
 
 ```bash
 mkdir -p ~/.hermes/desktop-plugins/mc-workflows
@@ -91,20 +96,24 @@ The app hot-loads the file within seconds. If it doesn't appear:
 ### Verify the backend
 
 ```bash
+# find your desktop dashboard port (usually 8787 when the Desktop connects
+# remotely, or the port `hermes dashboard` is serving)
 curl -s http://127.0.0.1:8787/api/plugins/mc-workflows/health
 curl -s http://127.0.0.1:8787/api/plugins/mc-workflows/crons | head -c 400
 curl -s http://127.0.0.1:8787/api/plugins/mc-workflows/webhooks | head -c 400
 curl -s http://127.0.0.1:8787/api/plugins/mc-workflows/skills | head -c 400
 ```
 
-(Use port 4860 for the s6 dashboard, 8787 for the desktop `--tui` dashboard.)
+(Local auth gate: on a non-loopback bind you'll get a 401 instead of JSON —
+the Desktop app itself is authenticated, so the plugin works there.)
 
-## Publishing
+## One-click install (Desktop)
 
-Standalone GitHub repo + one-click install link (deep links never auto-install):
+Standalone GitHub repo + one-click install link (deep links never auto-install —
+they open a confirmation dialog where you pick the components):
 
 ```html
-<a href="hermes://plugin/install?repo=OWNER/mc-workflows&enable=1">Install in Hermes</a>
+<a href="hermes://plugin/install?repo=Vi1414Vi/mc-workflows&enable=1">Install in Hermes</a>
 ```
 
 Optional: PR the `hermes-plugin-index` repo to list it in `hermes plugins search`.

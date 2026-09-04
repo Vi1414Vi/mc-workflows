@@ -1,6 +1,6 @@
 // mc-workflows — Hermes Desktop plugin (disk door, uncompiled ESM).
-// Install: ~/.hermes/desktop-plugins/mc-workflows/plugin.js  (folder name MUST
-// equal the `id` below). Backend half: /opt/data/plugins/mc-workflows/dashboard/
+// Install: $HERMES_HOME/desktop-plugins/mc-workflows/plugin.js (folder name MUST
+// equal the `id` below). Backend half: $HERMES_HOME/plugins/mc-workflows/dashboard/
 // (plugin_api.py + manifest.json), enabled via `plugins.enabled` in config.yaml.
 //
 // No JSX in a disk plugin — build UI with jsx()/jsxs() from react/jsx-runtime.
