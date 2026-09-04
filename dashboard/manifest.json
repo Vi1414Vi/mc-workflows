@@ -1,0 +1,8 @@
+{
+  "name": "mc-workflows",
+  "label": "Workflows & Skills",
+  "description": "Crons, webhooks, and skills pipelines — a desktop port of the Mission Control Workflows+Skills view, with live push and in-place skill editing.",
+  "version": "1.0.0",
+  "icon": "Puzzle",
+  "api": "plugin_api.py"
+}
