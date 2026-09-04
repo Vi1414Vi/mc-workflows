@@ -180,7 +180,7 @@ function Pipeline({ sequence, onStepClick }) {
 // --------------------------------------------------------------------------- //
 // Crons tab
 // --------------------------------------------------------------------------- //
-function CronsTab({ ctx, nav, onNavigate }) {
+function CronsTab({ ctx, nav, onOpenSkill }) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
   const q = useQuery({
@@ -283,7 +283,7 @@ function CronsTab({ ctx, nav, onNavigate }) {
             : null,
           h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Pipeline'),
           h('div', { style: { marginTop: '8px', padding: '12px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', borderRadius: '8px' } },
-            h(Pipeline, { sequence: job.sequence, onStepClick: (ref) => onNavigate(ref.type, ref.id) })
+            h(Pipeline, { sequence: job.sequence, onStepClick: (ref) => onOpenSkill(ref.id) })
           ),
           h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Prompt'),
           h('pre', {
@@ -308,7 +308,7 @@ function CronsTab({ ctx, nav, onNavigate }) {
 // --------------------------------------------------------------------------- //
 // Webhooks tab
 // --------------------------------------------------------------------------- //
-function WebhooksTab({ ctx, nav, onNavigate }) {
+function WebhooksTab({ ctx, nav, onOpenSkill }) {
   const [selected, setSelected] = useState(null)
   const q = useQuery({
     queryKey: ['mc-workflows', 'webhooks'],
@@ -365,7 +365,7 @@ function WebhooksTab({ ctx, nav, onNavigate }) {
             : h('div', { style: { marginTop: '8px' } }, h(Badge, { children: 'all events' })),
           h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Pipeline'),
           h('div', { style: { marginTop: '8px', padding: '12px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', borderRadius: '8px' } },
-            h(Pipeline, { sequence: route.sequence, onStepClick: (ref) => onNavigate(ref.type, ref.id) })
+            h(Pipeline, { sequence: route.sequence, onStepClick: (ref) => onOpenSkill(ref.id) })
           ),
           h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Prompt template'),
           h('pre', { style: { marginTop: '8px', padding: '12px', borderRadius: '8px', background: 'var(--ui-stroke-secondary, rgba(255,255,255,0.04))', color: 'var(--ui-text-secondary, #e5e7eb)', fontSize: '0.75rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '240px', overflowY: 'auto' } }, route.prompt_full || '(no prompt)')
@@ -441,6 +441,104 @@ function EditDialog({ skill, ctx, onClose, onSaved }) {
           style: { padding: '6px 14px', borderRadius: '6px', border: 'none', background: 'var(--ui-accent, #00F593)', color: '#06291b', cursor: mutation.isPending ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 600 },
         }, mutation.isPending ? 'Saving…' : 'Save')
       )
+    )
+  )
+}
+
+// --------------------------------------------------------------------------- //
+// Skill detail body — shared between the Skills tab panel and the modal.
+// --------------------------------------------------------------------------- //
+function SkillDetail({ detail, onEdit, onSwitch, onCron }) {
+  return h(Fragment, {},
+    h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
+      h('div', { style: { fontSize: '0.9375rem', fontWeight: 600, color: 'var(--ui-text-secondary, #e5e7eb)' } }, detail.name),
+      detail.category ? h(Badge, { children: detail.category }) : null,
+      onEdit ? h('button', {
+        onClick: onEdit,
+        style: { marginLeft: 'auto', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.14))', background: 'transparent', color: 'var(--ui-text-secondary, #e5e7eb)', cursor: 'pointer', fontSize: '0.75rem' },
+      }, '✎ Edit') : null
+    ),
+    detail.description ? h('div', { style: { marginTop: '8px', color: 'var(--ui-text-tertiary, #9ca3af)', fontSize: '0.8125rem' } }, detail.description) : null,
+    detail.credentials && detail.credentials.length
+      ? h('div', { style: { marginTop: '8px' } },
+          h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Credentials'),
+          h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.credentials.map((c) => h(Badge, { key: String(c), tone: 'accent', children: String(c) })))
+        )
+      : null,
+    detail.related_skills && detail.related_skills.length
+      ? h('div', { style: { marginTop: '8px' } },
+          h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Related skills'),
+          h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.related_skills.map((r) =>
+            h('button', {
+              key: r,
+              onClick: () => onSwitch && onSwitch(String(r)),
+              style: { background: 'transparent', border: 'none', padding: 0, cursor: onSwitch ? 'pointer' : 'default' },
+            }, h(Badge, { key: r, children: r }))
+          ))
+        )
+      : null,
+    detail.used_by_crons && detail.used_by_crons.length
+      ? h('div', { style: { marginTop: '8px' } },
+          h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Used by crons'),
+          h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.used_by_crons.map((c) =>
+            h('button', {
+              key: c,
+              onClick: () => onCron && onCron(String(c)),
+              style: { background: 'transparent', border: 'none', padding: 0, cursor: onCron ? 'pointer' : 'default' },
+            }, h(Badge, { key: c, children: c }))
+          ))
+        )
+      : null,
+    h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'SKILL.md'),
+    h('pre', { style: { marginTop: '8px', padding: '12px', borderRadius: '8px', background: 'var(--ui-stroke-secondary, rgba(255,255,255,0.04))', color: 'var(--ui-text-secondary, #e5e7eb)', fontSize: '0.75rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } }, detail.raw)
+  )
+}
+
+// --------------------------------------------------------------------------- //
+// Skill modal — opened by clicking a skill/agent step in a pipeline. Keeps
+// the pipeline in view behind it (no tab switch).
+// --------------------------------------------------------------------------- //
+function SkillModal({ name, ctx, onNavigate, onClose }) {
+  const [current, setCurrent] = useState(name)
+  const [editing, setEditing] = useState(false)
+  const q = useQuery({
+    queryKey: ['mc-workflows', 'skill', current],
+    queryFn: () => ctx.rest('/skills/' + encodeURIComponent(current)),
+    refetchInterval: POLL_MS,
+  })
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const detail = q.data
+
+  return h(
+    'div',
+    {
+      onClick: (e) => { if (e.target === e.currentTarget) onClose() },
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' },
+    },
+    h(
+      'div',
+      { style: { width: '100%', maxWidth: '720px', height: '80vh', display: 'flex', flexDirection: 'column', borderRadius: '10px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.14))', background: 'var(--card, #111417)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' } },
+      h('div', { style: { padding: '12px 16px', borderBottom: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+        h('div', { style: { fontWeight: 600, fontSize: '0.875rem', color: 'var(--ui-text-secondary, #e5e7eb)' } }, 'Skill: ' + current),
+        h('button', { onClick: onClose, style: { background: 'transparent', border: 'none', color: 'var(--ui-text-tertiary)', cursor: 'pointer', fontSize: '1rem' } }, '✕')
+      ),
+      h('div', { style: { flex: '1', minHeight: 0, overflowY: 'auto', padding: '16px' } },
+        q.isLoading ? h('div', { style: { color: 'var(--ui-text-tertiary)' } }, 'Loading skill…') :
+        q.isError ? h('div', { style: { color: '#ef4444' } }, 'Failed to load skill: ' + (q.error?.message || q.error)) :
+        detail ? h(SkillDetail, {
+          detail,
+          onEdit: () => setEditing(true),
+          onSwitch: (r) => setCurrent(r),
+          onCron: (c) => { onClose(); onNavigate('crons', c) },
+        }) : h(EmptyState, { message: 'No skill data' })
+      ),
+      editing && detail ? h(EditDialog, { skill: detail, ctx, onClose: () => setEditing(false), onSaved: () => setEditing(false) }) : null
     )
   )
 }
@@ -523,51 +621,12 @@ function SkillsTab({ ctx, nav, onNavigate }) {
       { style: { flex: '1', minWidth: 0, overflowY: 'auto', padding: '16px' } },
       active && detailQ.isLoading ? h('div', { style: { color: 'var(--ui-text-tertiary)' } }, 'Loading skill…') :
       active && detailQ.isError ? h('div', { style: { color: '#ef4444' } }, 'Failed to load skill') :
-      active && detail ? (
-        h(Fragment, {},
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
-            h('div', { style: { fontSize: '0.9375rem', fontWeight: 600, color: 'var(--ui-text-secondary, #e5e7eb)' } }, detail.name),
-            detail.category ? h(Badge, { children: detail.category }) : null,
-            h('button', {
-              onClick: () => setEditing(true),
-              style: { marginLeft: 'auto', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.14))', background: 'transparent', color: 'var(--ui-text-secondary, #e5e7eb)', cursor: 'pointer', fontSize: '0.75rem' },
-            }, '✎ Edit')
-          ),
-          detail.description ? h('div', { style: { marginTop: '8px', color: 'var(--ui-text-tertiary, #9ca3af)', fontSize: '0.8125rem' } }, detail.description) : null,
-          detail.credentials && detail.credentials.length
-            ? h('div', { style: { marginTop: '8px' } },
-                h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Credentials'),
-                h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.credentials.map((c) => h(Badge, { key: String(c), tone: 'accent', children: String(c) })))
-              )
-            : null,
-          detail.related_skills && detail.related_skills.length
-            ? h('div', { style: { marginTop: '8px' } },
-                h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Related skills'),
-                h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.related_skills.map((r) =>
-                  h('button', {
-                    key: r,
-                    onClick: () => { setSelected(String(r)); setQuery('') },
-                    style: { background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' },
-                  }, h(Badge, { key: r, children: r }))
-                ))
-              )
-            : null,
-          detail.used_by_crons && detail.used_by_crons.length
-            ? h('div', { style: { marginTop: '8px' } },
-                h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Used by crons'),
-                h('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } }, detail.used_by_crons.map((c) =>
-                  h('button', {
-                    key: c,
-                    onClick: () => onNavigate('crons', String(c)),
-                    style: { background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' },
-                  }, h(Badge, { key: c, children: c }))
-                ))
-              )
-            : null,
-          h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'SKILL.md'),
-          h('pre', { style: { marginTop: '8px', padding: '12px', borderRadius: '8px', background: 'var(--ui-stroke-secondary, rgba(255,255,255,0.04))', color: 'var(--ui-text-secondary, #e5e7eb)', fontSize: '0.75rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } }, detail.raw)
-        )
-      ) : h(EmptyState, { message: 'Select a skill' })
+      active && detail ? h(SkillDetail, {
+        detail,
+        onEdit: () => setEditing(true),
+        onSwitch: (r) => { setSelected(String(r)); setQuery('') },
+        onCron: (c) => onNavigate('crons', String(c)),
+      }) : h(EmptyState, { message: 'Select a skill' })
     ),
     editing && detail ? h(EditDialog, { skill: detail, ctx, onClose: () => setEditing(false), onSaved: () => setEditing(false) }) : null
   )
@@ -578,9 +637,11 @@ function SkillsTab({ ctx, nav, onNavigate }) {
 // --------------------------------------------------------------------------- //
 function WorkflowsPage({ ctx }) {
   const [tab, setTab] = useState('crons')
-  // Cross-tab navigation: a step/badge click can jump to another tab and
+  // Cross-tab navigation: a badge click can jump to another tab and
   // select an item there. { to: 'skills'|'crons'|'webhooks', item: name }.
   const [nav, setNav] = useState(null)
+  // Skill modal: opened by clicking a skill/agent step in a pipeline.
+  const [modalSkill, setModalSkill] = useState(null)
   const tabs = [
     { id: 'crons', label: 'Crons' },
     { id: 'webhooks', label: 'Webhooks' },
@@ -592,6 +653,8 @@ function WorkflowsPage({ ctx }) {
     setNav({ to: tabId, item })
     setTab(tabId)
   }
+
+  const openSkill = (name) => setModalSkill(name)
 
   useEffect(() => {
     // Live push: native gateway cron.changed + our skills broadcast.
@@ -633,8 +696,9 @@ function WorkflowsPage({ ctx }) {
     h(
       'div',
       { style: { flex: '1', minHeight: 0 } },
-      tab === 'crons' ? h(CronsTab, { ctx, nav, onNavigate: navigate }) : tab === 'webhooks' ? h(WebhooksTab, { ctx, nav, onNavigate: navigate }) : h(SkillsTab, { ctx, nav, onNavigate: navigate })
-    )
+      tab === 'crons' ? h(CronsTab, { ctx, nav, onOpenSkill: openSkill }) : tab === 'webhooks' ? h(WebhooksTab, { ctx, nav, onOpenSkill: openSkill }) : h(SkillsTab, { ctx, nav, onNavigate: navigate })
+    ),
+    modalSkill ? h(SkillModal, { name: modalSkill, ctx, onNavigate: navigate, onClose: () => setModalSkill(null) }) : null
   )
 }
 
