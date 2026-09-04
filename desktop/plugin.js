@@ -501,6 +501,8 @@ function SkillDetail({ detail, onEdit, onSwitch, onCron }) {
 function SkillModal({ name, ctx, onNavigate, onClose }) {
   const [current, setCurrent] = useState(name)
   const [editing, setEditing] = useState(false)
+  const [request, setRequest] = useState('')
+  const [requestState, setRequestState] = useState(null) // null | 'sending' | {ok}| {err}
   const q = useQuery({
     queryKey: ['mc-workflows', 'skill', current],
     queryFn: () => ctx.rest('/skills/' + encodeURIComponent(current)),
@@ -514,6 +516,50 @@ function SkillModal({ name, ctx, onNavigate, onClose }) {
   }, [onClose])
 
   const detail = q.data
+
+  // Start a NEW agent session with the skill as context + the user's request.
+  // session.create seeds the conversation; prompt.submit fires the first turn.
+  // The row persists on first prompt, so no orphan sessions. The new session
+  // shows up in the app's sidebar where the user can watch/interrupt/continue.
+  const sendRequest = async () => {
+    const text = request.trim()
+    if (!text || !detail || requestState === 'sending') return
+    setRequestState('sending')
+    try {
+      const seed = [
+        {
+          role: 'user',
+          content:
+            'Contexte : voici le skill "' + detail.name + '" (SKILL.md complet ci-dessous).\n\n' +
+            (detail.raw || '(no content)') +
+            '\n\nUn changement va t\'être demandé pour ce skill. Fais-le directement (écris le fichier), ' +
+            'respecte le frontmatter existant (--- au byte 0, name présent, description ≤ 1024 chars, body non-vide), ' +
+            'et confirme en français ce que tu as modifié.',
+        },
+      ]
+      const created = await host.request('session.create', {
+        messages: seed,
+        title: 'Skill: ' + detail.name,
+        profile: 'default',
+        source: 'plugin:mc-workflows',
+      })
+      const sid = created && (created.session_id || created.stored_session_id)
+      if (!sid) throw new Error('session.create returned no session id')
+      await host.request('prompt.submit', {
+        session_id: sid,
+        text: text,
+      })
+      haptic('tap')
+      setRequest('')
+      setRequestState({ ok: true })
+      host.notify({
+        kind: 'success',
+        message: 'Agent session started — skill: ' + detail.name,
+      })
+    } catch (e) {
+      setRequestState({ err: e && e.message ? String(e.message) : String(e) })
+    }
+  }
 
   return h(
     'div',
@@ -537,6 +583,38 @@ function SkillModal({ name, ctx, onNavigate, onClose }) {
           onSwitch: (r) => setCurrent(r),
           onCron: (c) => { onClose(); onNavigate('crons', c) },
         }) : h(EmptyState, { message: 'No skill data' })
+      ),
+      h('div', { style: { padding: '12px 16px', borderTop: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))' } },
+        h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' } }, 'Demander un changement (agent)'),
+        h('div', { style: { display: 'flex', gap: '8px' } },
+          h('input', {
+            value: request,
+            onChange: (e) => { setRequest(e.target.value); setRequestState(null) },
+            onKeyDown: (e) => { if (e.key === 'Enter') sendRequest() },
+            placeholder: 'Ex. : reformule la description, ajoute un piège, restructure… puis Entrée',
+            disabled: requestState === 'sending',
+            style: {
+              flex: '1', padding: '8px 10px', fontSize: '0.8125rem', borderRadius: '6px',
+              border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.14))',
+              background: 'var(--background, #0b0d0f)', color: 'var(--ui-text-secondary, #e5e7eb)', outline: 'none',
+            },
+          }),
+          h('button', {
+            onClick: sendRequest,
+            disabled: requestState === 'sending',
+            style: {
+              padding: '8px 16px', borderRadius: '6px', border: 'none',
+              background: 'var(--ui-accent, #00F593)', color: '#06291b',
+              cursor: requestState === 'sending' ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 600,
+              whiteSpace: 'nowrap',
+            },
+          }, requestState === 'sending' ? 'Démarre…' : 'Go')
+        ),
+        requestState && requestState.ok
+          ? h('div', { style: { marginTop: '6px', color: '#22c55e', fontSize: '0.75rem' } }, 'Session démarrée — suis-la dans la sidebar (nouvel onglet).')
+          : requestState && requestState.err
+            ? h('div', { style: { marginTop: '6px', color: '#ef4444', fontSize: '0.75rem' } }, 'Erreur : ' + requestState.err)
+            : null
       ),
       editing && detail ? h(EditDialog, { skill: detail, ctx, onClose: () => setEditing(false), onSaved: () => setEditing(false) }) : null
     )
