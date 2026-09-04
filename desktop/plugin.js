@@ -84,7 +84,7 @@ function Badge({ children, tone }) {
         lineHeight: '1',
         padding: '2px 6px',
         borderRadius: '9999px',
-        border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.12))',
+        border: '1px solid var(--ui-stroke-secondary, rgba(128,128,128,0.3))',
         color,
         whiteSpace: 'nowrap',
       },
@@ -365,16 +365,16 @@ function EditDialog({ skill, ctx, onClose, onSaved }) {
     'div',
     {
       onClick: (e) => { if (e.target === e.currentTarget) onClose() },
-      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' },
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(0.125rem)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 'var(--z-modal, 130)', padding: '24px' },
     },
     h(
       'div',
-      { style: { width: '100%', maxWidth: '720px', height: '80vh', display: 'flex', flexDirection: 'column', borderRadius: '10px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.14))', background: 'var(--card, #111417)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' } },
-      h('div', { style: { padding: '12px 16px', borderBottom: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
-        h('div', { style: { fontWeight: 600, fontSize: '0.875rem', color: 'var(--ui-text-secondary, #e5e7eb)' } }, 'Edit skill: ' + skill.name),
+      { style: { width: '100%', maxWidth: '720px', height: '80vh', display: 'flex', flexDirection: 'column', borderRadius: '10px', border: '1px solid var(--ui-stroke-secondary, rgba(128,128,128,0.25))', background: 'var(--ui-bg-card, var(--ui-bg-chrome, #1a1c1f))', color: 'var(--ui-text-primary, #e5e7eb)', boxShadow: '0 10px 40px rgba(0,0,0,0.4)' } },
+      h('div', { style: { padding: '12px 16px', borderBottom: '1px solid var(--ui-stroke-secondary, rgba(128,128,128,0.18))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+        h('div', { style: { fontWeight: 600, fontSize: '0.875rem', color: 'var(--ui-text-primary, #e5e7eb)' } }, 'Edit skill: ' + skill.name),
         h('button', { onClick: onClose, style: { background: 'transparent', border: 'none', color: 'var(--ui-text-tertiary)', cursor: 'pointer', fontSize: '1rem' } }, '✕')
       ),
-      h('div', { style: { padding: '8px 16px', fontSize: '0.6875rem', color: 'var(--ui-text-quaternary, #6b7280)' } },
+      h('div', { style: { padding: '8px 16px', fontSize: '0.6875rem', color: 'var(--ui-text-quaternary, #9ca3af)' } },
         'Full SKILL.md — YAML frontmatter (--- … ---) then markdown body. Validated on save.'
       ),
       h('textarea', {
@@ -386,9 +386,9 @@ function EditDialog({ skill, ctx, onClose, onSaved }) {
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
           fontSize: '0.75rem', lineHeight: '1.5',
           borderRadius: '8px',
-          border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.14))',
-          background: 'var(--background, #0b0d0f)',
-          color: 'var(--ui-text-secondary, #e5e7eb)',
+          border: '1px solid var(--ui-stroke-secondary, rgba(128,128,128,0.3))',
+          background: 'var(--ui-bg-input, transparent)',
+          color: 'var(--ui-text-primary, inherit)',
           outline: 'none', whiteSpace: 'pre', overflowX: 'auto',
         },
       }),
@@ -450,7 +450,7 @@ function SkillDetail({ detail, onEdit, onSwitch, onCron }) {
         )
       : null,
     h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'SKILL.md'),
-    h('pre', { style: { marginTop: '8px', padding: '12px', borderRadius: '8px', background: 'var(--ui-stroke-secondary, rgba(255,255,255,0.04))', color: 'var(--ui-text-secondary, #e5e7eb)', fontSize: '0.75rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } }, detail.raw)
+    h('pre', { style: { marginTop: '8px', padding: '12px', borderRadius: '8px', background: 'var(--ui-bg-editor, rgba(128,128,128,0.10))', color: 'var(--ui-text-secondary, #d1d5db)', fontSize: '0.75rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } }, detail.raw)
   )
 }
 
@@ -525,13 +525,13 @@ function SkillModal({ name, ctx, onNavigate, onClose }) {
     'div',
     {
       onClick: (e) => { if (e.target === e.currentTarget) onClose() },
-      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' },
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(0.125rem)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 'var(--z-modal, 130)', padding: '24px' },
     },
     h(
       'div',
-      { style: { width: '100%', maxWidth: '720px', height: '80vh', display: 'flex', flexDirection: 'column', borderRadius: '10px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.14))', background: 'var(--card, #111417)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' } },
-      h('div', { style: { padding: '12px 16px', borderBottom: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
-        h('div', { style: { fontWeight: 600, fontSize: '0.875rem', color: 'var(--ui-text-secondary, #e5e7eb)' } }, 'Skill: ' + current),
+      { style: { width: '100%', maxWidth: '720px', height: '80vh', display: 'flex', flexDirection: 'column', borderRadius: '10px', border: '1px solid var(--ui-stroke-secondary, rgba(128,128,128,0.25))', background: 'var(--ui-bg-card, var(--ui-bg-chrome, #1a1c1f))', color: 'var(--ui-text-primary, #e5e7eb)', boxShadow: '0 10px 40px rgba(0,0,0,0.4)' } },
+      h('div', { style: { padding: '12px 16px', borderBottom: '1px solid var(--ui-stroke-secondary, rgba(128,128,128,0.18))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+        h('div', { style: { fontWeight: 600, fontSize: '0.875rem', color: 'var(--ui-text-primary, #e5e7eb)' } }, 'Skill: ' + current),
         h('button', { onClick: onClose, style: { background: 'transparent', border: 'none', color: 'var(--ui-text-tertiary)', cursor: 'pointer', fontSize: '1rem' } }, '✕')
       ),
       h('div', { style: { flex: '1', minHeight: 0, overflowY: 'auto', padding: '16px' } },
@@ -544,8 +544,8 @@ function SkillModal({ name, ctx, onNavigate, onClose }) {
           onCron: (c) => { onClose(); onNavigate('crons', c) },
         }) : h(EmptyState, { message: 'No skill data' })
       ),
-      h('div', { style: { padding: '12px 16px', borderTop: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))' } },
-        h('div', { style: { color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' } }, 'Ask an agent to change it'),
+      h('div', { style: { padding: '12px 16px', borderTop: '1px solid var(--ui-stroke-secondary, rgba(128,128,128,0.18))' } },
+        h('div', { style: { color: 'var(--ui-text-quaternary, #9ca3af)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' } }, 'Ask an agent to change it'),
         h('div', { style: { display: 'flex', gap: '8px' } },
           h('input', {
             value: request,
@@ -555,8 +555,8 @@ function SkillModal({ name, ctx, onNavigate, onClose }) {
             disabled: requestState === 'sending',
             style: {
               flex: '1', padding: '8px 10px', fontSize: '0.8125rem', borderRadius: '6px',
-              border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.14))',
-              background: 'var(--background, #0b0d0f)', color: 'var(--ui-text-secondary, #e5e7eb)', outline: 'none',
+              border: '1px solid var(--ui-stroke-secondary, rgba(128,128,128,0.3))',
+              background: 'var(--ui-bg-input, transparent)', color: 'var(--ui-text-primary, inherit)', outline: 'none',
             },
           }),
           h('button', {
