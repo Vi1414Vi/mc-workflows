@@ -567,7 +567,7 @@ function WorkflowsPage({ ctx }) {
             borderRadius: '6px',
             border: 'none',
             background: tab === t.id ? 'var(--ui-accent, rgba(0,245,147,0.12))' : 'transparent',
-            color: tab === t.id ? 'var(--ui-accent, #00F593)' : 'var(--ui-text-tertiary, #9ca3af)',
+            color: tab === t.id ? '#ffffff' : 'var(--ui-text-tertiary, #9ca3af)',
             cursor: 'pointer',
             fontSize: '0.8125rem',
           },
