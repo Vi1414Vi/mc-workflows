@@ -621,113 +621,23 @@ function SkillModal({ name, ctx, onNavigate, onClose }) {
   )
 }
 
-function SkillsTab({ ctx, nav, onNavigate }) {
-  const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState(null)
-  const [editing, setEditing] = useState(false)
-
-  // Incoming cross-tab navigation: select the targeted skill once visible.
-  useEffect(() => {
-    if (nav && nav.to === 'skills' && nav.item) setSelected(nav.item)
-  }, [nav])
-
-  const listQ = useQuery({
-    queryKey: ['mc-workflows', 'skills'],
-    queryFn: () => ctx.rest('/skills'),
-    refetchInterval: POLL_MS,
-  })
-  const detailQ = useQuery({
-    queryKey: ['mc-workflows', 'skill', selected],
-    queryFn: () => ctx.rest('/skills/' + selected),
-    enabled: !!selected,
-    refetchInterval: POLL_MS,
-  })
-
-  const skills = useMemo(() => {
-    const list = listQ.data && listQ.data.skills ? listQ.data.skills : []
-    if (!query.trim()) return list
-    const ql = query.toLowerCase()
-    return list.filter((s) => (s.name || '').toLowerCase().includes(ql) || (s.description || '').toLowerCase().includes(ql) || (s.category || '').toLowerCase().includes(ql))
-  }, [listQ.data, query])
-
-  const active = selected && skills.find((s) => s.name === selected) ? selected : skills.length ? skills[0].name : null
-  const detail = detailQ.data
-
-  return h(
-    'div',
-    { style: { display: 'flex', height: '100%', minHeight: 0 } },
-    h(
-      'div',
-      { style: { width: '280px', flexShrink: 0, borderRight: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', display: 'flex', flexDirection: 'column', minHeight: 0 } },
-      h('input', {
-        placeholder: 'Search skills…',
-        value: query,
-        onChange: (e) => setQuery(e.target.value),
-        style: { margin: '8px', padding: '6px 8px', fontSize: '0.8125rem', borderRadius: '6px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.12))', background: 'transparent', color: 'var(--ui-text-secondary, #e5e7eb)', outline: 'none' },
-      }),
-      listQ.isLoading
-        ? h('div', { style: { padding: '16px', color: 'var(--ui-text-tertiary)' } }, 'Loading…')
-        : h(
-            'div',
-            { style: { flex: '1', overflowY: 'auto', minHeight: 0 } },
-            skills.map((s) =>
-              h(
-                'button',
-                {
-                  key: s.name,
-                  onClick: () => setSelected(s.name),
-                  style: {
-                    display: 'block', width: '100%', textAlign: 'left', padding: '8px',
-                    border: 'none',
-                    background: s.name === active ? 'var(--ui-accent, rgba(0,245,147,0.08))' : 'transparent',
-                    color: 'var(--ui-text-secondary, #e5e7eb)', cursor: 'pointer',
-                    borderLeft: s.name === active ? '2px solid var(--ui-accent, #00F593)' : '2px solid transparent',
-                  },
-                },
-                h('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
-                  h('span', { style: { fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, s.name),
-                  s.has_credentials ? h('span', { style: { color: 'var(--ui-accent, #00F593)', fontSize: '0.6875rem' }, title: 'uses credentials' }, '🔑') : null
-                ),
-                s.category ? h('div', { style: { fontSize: '0.6875rem', color: 'var(--ui-text-quaternary, #6b7280)', paddingLeft: '6px' } }, s.category) : null,
-                s.description ? h('div', { style: { fontSize: '0.6875rem', color: 'var(--ui-text-tertiary, #9ca3af)', paddingLeft: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, s.description) : null
-              )
-            )
-          )
-    ),
-    h(
-      'div',
-      { style: { flex: '1', minWidth: 0, overflowY: 'auto', padding: '16px' } },
-      active && detailQ.isLoading ? h('div', { style: { color: 'var(--ui-text-tertiary)' } }, 'Loading skill…') :
-      active && detailQ.isError ? h('div', { style: { color: '#ef4444' } }, 'Failed to load skill') :
-      active && detail ? h(SkillDetail, {
-        detail,
-        onEdit: () => setEditing(true),
-        onSwitch: (r) => { setSelected(String(r)); setQuery('') },
-        onCron: (c) => onNavigate('crons', String(c)),
-      }) : h(EmptyState, { message: 'Select a skill' })
-    ),
-    editing && detail ? h(EditDialog, { skill: detail, ctx, onClose: () => setEditing(false), onSaved: () => setEditing(false) }) : null
-  )
-}
-
 // --------------------------------------------------------------------------- //
 // Page — tabs
 // --------------------------------------------------------------------------- //
 function WorkflowsPage({ ctx }) {
   const [tab, setTab] = useState('crons')
   // Cross-tab navigation: a badge click can jump to another tab and
-  // select an item there. { to: 'skills'|'crons'|'webhooks', item: name }.
+  // select an item there. { to: 'crons'|'webhooks', item: name }.
   const [nav, setNav] = useState(null)
   // Skill modal: opened by clicking a skill/agent step in a pipeline.
   const [modalSkill, setModalSkill] = useState(null)
   const tabs = [
     { id: 'crons', label: 'Crons' },
     { id: 'webhooks', label: 'Webhooks' },
-    { id: 'skills', label: 'Skills' },
   ]
 
   const navigate = (to, item) => {
-    const tabId = to === 'skill' ? 'skills' : to
+    const tabId = to === 'skill' ? 'crons' : to
     setNav({ to: tabId, item })
     setTab(tabId)
   }
@@ -754,7 +664,7 @@ function WorkflowsPage({ ctx }) {
     h(
       'div',
       { style: { display: 'flex', alignItems: 'center', gap: '2px', padding: '8px 12px', borderBottom: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))' } },
-      h('div', { style: { fontWeight: 600, fontSize: '0.875rem', color: 'var(--ui-text-secondary, #e5e7eb)', marginRight: '16px' } }, 'Workflows & Skills'),
+      h('div', { style: { fontWeight: 600, fontSize: '0.875rem', color: 'var(--ui-text-secondary, #e5e7eb)', marginRight: '16px' } }, 'Workflows'),
       tabs.map((t) =>
         h('button', {
           key: t.id,
@@ -774,7 +684,7 @@ function WorkflowsPage({ ctx }) {
     h(
       'div',
       { style: { flex: '1', minHeight: 0 } },
-      tab === 'crons' ? h(CronsTab, { ctx, nav, onOpenSkill: openSkill }) : tab === 'webhooks' ? h(WebhooksTab, { ctx, nav, onOpenSkill: openSkill }) : h(SkillsTab, { ctx, nav, onNavigate: navigate })
+      tab === 'crons' ? h(CronsTab, { ctx, nav, onOpenSkill: openSkill }) : h(WebhooksTab, { ctx, nav, onOpenSkill: openSkill })
     ),
     modalSkill ? h(SkillModal, { name: modalSkill, ctx, onNavigate: navigate, onClose: () => setModalSkill(null) }) : null
   )
@@ -797,7 +707,7 @@ export default {
       {
         id: 'nav',
         area: SIDEBAR_NAV_AREA,
-        data: { path: '/workflows', label: 'Workflows & Skills', codicon: 'hubot' },
+        data: { path: '/workflows', label: 'Workflows', codicon: 'hubot' },
       },
     ])
   },
