@@ -255,25 +255,9 @@ function CronsTab({ ctx, nav, onOpenSkill, navTabs }) {
           job.issues && job.issues.length
             ? h('div', { style: { marginTop: '8px' } }, job.issues.map((iss, i) => h('div', { key: i, style: { color: '#f59e0b', fontSize: '0.75rem' } }, '⚠ ' + iss)))
             : null,
-          h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Pipeline'),
-          h('div', { style: { marginTop: '8px', padding: '12px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', borderRadius: '8px' } },
+          h('div', { style: { marginTop: '16px' } },
             h(Pipeline, { sequence: job.sequence, onStepClick: (ref) => onOpenSkill(ref.id) })
-          ),
-          h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Prompt'),
-          h('pre', {
-            style: {
-              marginTop: '8px',
-              padding: '12px',
-              borderRadius: '8px',
-              background: 'var(--ui-stroke-secondary, rgba(255,255,255,0.04))',
-              color: 'var(--ui-text-secondary, #e5e7eb)',
-              fontSize: '0.75rem',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              maxHeight: '240px',
-              overflowY: 'auto',
-            },
-          }, job.prompt_full || '(no prompt)')
+          )
         )
       : h(EmptyState, { message: 'Select a cron' })
   )
@@ -342,12 +326,9 @@ function WebhooksTab({ ctx, nav, onOpenSkill, navTabs }) {
           route.events && route.events.length
             ? h('div', { style: { marginTop: '8px', display: 'flex', gap: '4px', flexWrap: 'wrap' } }, route.events.map((e) => h(Badge, { key: e, children: e })))
             : h('div', { style: { marginTop: '8px' } }, h(Badge, { children: 'all events' })),
-          h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Pipeline'),
-          h('div', { style: { marginTop: '8px', padding: '12px', border: '1px solid var(--ui-stroke-secondary, rgba(255,255,255,0.08))', borderRadius: '8px' } },
+          h('div', { style: { marginTop: '16px' } },
             h(Pipeline, { sequence: route.sequence, onStepClick: (ref) => onOpenSkill(ref.id) })
-          ),
-          h('div', { style: { marginTop: '16px', color: 'var(--ui-text-quaternary, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, 'Prompt template'),
-          h('pre', { style: { marginTop: '8px', padding: '12px', borderRadius: '8px', background: 'var(--ui-stroke-secondary, rgba(255,255,255,0.04))', color: 'var(--ui-text-secondary, #e5e7eb)', fontSize: '0.75rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '240px', overflowY: 'auto' } }, route.prompt_full || '(no prompt)')
+          )
         )
       : h(EmptyState, { message: 'Select a webhook' })
   )
