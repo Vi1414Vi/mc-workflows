@@ -588,8 +588,9 @@ function WorkflowsPage({ ctx }) {
   ]
 
   const navigate = (to, item) => {
-    setNav({ to, item })
-    setTab(to)
+    const tabId = to === 'skill' ? 'skills' : to
+    setNav({ to: tabId, item })
+    setTab(tabId)
   }
 
   useEffect(() => {
