@@ -797,7 +797,7 @@ export default {
       {
         id: 'nav',
         area: SIDEBAR_NAV_AREA,
-        data: { path: '/workflows', label: 'Workflows & Skills', codicon: 'workflow' },
+        data: { path: '/workflows', label: 'Workflows & Skills', codicon: 'hubot' },
       },
     ])
   },
